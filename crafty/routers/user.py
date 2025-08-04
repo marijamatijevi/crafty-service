@@ -9,6 +9,8 @@ from crafty.decorators import handle_http_exceptions
 from crafty.exceptions import (InvalidUserTypeError, UserAlreadyExistsError,
                                UserNotFoundError)
 from crafty.schemas.user import UserCreate, UserResponse
+from crafty.schemas.user import BuyerCreate, SellerCreate
+
 
 router = APIRouter(tags=["users"], prefix="/users")
 
@@ -19,13 +21,10 @@ exception_mapping = {
 }
 
 
-@router.post("/", response_model=UserResponse)
+@router.post("/buyers/", response_model=UserResponse)
 @handle_http_exceptions(exception_mapping)
-async def create_new_user(
-    user: UserCreate, db: Session = Depends(get_db)
-) -> UserResponse:
-    """
-    Create a new user.
+async def create_buyer(user: BuyerCreate, db: Session = Depends(get_db)) -> UserResponse:
+    """Create a new user of type buyer.
 
     Args:
         user (UserCreate): The user data to create.
@@ -38,8 +37,26 @@ async def create_new_user(
         HTTPException: If a user with the same email or username already exists,
                        or other internal errors occur.
     """
-    return create_user(db=db, user=user)
+    return create_user(db, user)
 
+
+@router.post("/sellers/", response_model=UserResponse)
+@handle_http_exceptions(exception_mapping)
+async def create_seller(user: SellerCreate, db: Session = Depends(get_db)) -> UserResponse:
+    """Create a new user of type seller.
+
+    Args:
+        user (UserCreate): The user data to create.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+
+    Returns:
+        UserResponse: The created user object.
+
+    Raises:
+        HTTPException: If a user with the same email or username already exists,
+                       or other internal errors occur.
+    """
+    return create_user(db, user)
 
 @router.get("/", response_model=List[UserResponse])
 async def read_users(

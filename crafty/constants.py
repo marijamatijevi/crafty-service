@@ -1,9 +1,12 @@
 import enum
 
 
-class UserType(str, enum.Enum):
+class UserType(enum.StrEnum):
     buyer = "buyer"
     seller = "seller"
+
+    def __repr__(self):
+        return self.value
 
 
 class Rating(enum.Enum):
@@ -13,8 +16,14 @@ class Rating(enum.Enum):
     four = "4"
     five = "5"
 
+    def __repr__(self):
+        return self.value
 
-class SubscriptionLevel(enum.Enum):
+
+class SubscriptionLevel(enum.StrEnum):
     basic = "basic"
     premium = "premium"
     pro = "pro"
+
+    def __repr__(self):
+        return self.value
