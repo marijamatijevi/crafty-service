@@ -1,9 +1,16 @@
 import re
-from typing import Annotated, Optional
+from typing import Annotated, Optional, Literal
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    Field,
+    field_validator,
+    PrivateAttr,
+    model_validator,
+)
 
-from crafty.constants import UserType
+from crafty.constants import UserType, SubscriptionLevel
 
 
 class UserCreate(BaseModel):
@@ -26,9 +33,6 @@ class UserCreate(BaseModel):
     )
     email: EmailStr = Field(..., description="The email of the user.")
     password_hash: str = Field(..., description="The hashed password of the user.")
-    user_type: UserType = Field(
-        ..., description="The type of the user (either 'buyer' or 'seller')."
-    )
 
     @field_validator("username")
     def validate_username(cls, value):
@@ -63,7 +67,6 @@ class UserBase(BaseModel):
     id: int
     username: str
     email: EmailStr
-    user_type: UserType
 
     class Config:
         use_enum_values = True
@@ -79,8 +82,18 @@ class SellerCreate(UserCreate):
     Additional attributes can be added specific to sellers if needed.
     """
 
-    pass
+    _user_type: UserType = PrivateAttr(default=UserType.seller)
+    _subscription_level: SubscriptionLevel = PrivateAttr(
+        default=SubscriptionLevel.basic
+    )
 
+    @property
+    def user_type(self):
+        return self._user_type
+    
+    @property
+    def subscription_level(self):
+        return self._subscription_level    
 
 class BuyerCreate(UserCreate):
     """
@@ -92,7 +105,7 @@ class BuyerCreate(UserCreate):
     Additional attributes can be added specific to buyers if needed.
     """
 
-    pass
+    user_type: Literal[UserType.buyer] = Field(default=UserType.buyer)
 
 
 class UserResponse(UserBase):

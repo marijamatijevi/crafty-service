@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Union
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -8,39 +8,52 @@ from crafty.constants import SubscriptionLevel, UserType
 from crafty.db.models.user import Buyer, Seller, User
 from crafty.exceptions import (InvalidUserTypeError, UserAlreadyExistsError,
                                UserNotFoundError)
-from crafty.schemas.user import UserCreate
+from crafty.schemas.user import BuyerCreate, SellerCreate
+
 
 logger = logging.getLogger(__name__)
 
 
-def create_user(db: Session, user: UserCreate) -> User:
-    """Create a new user in the database."""
+def create_user(
+    db: Session, user: Union[BuyerCreate, SellerCreate]
+) -> User:
+    """
+    Create a new Buyer or Seller user in the database.
+
+    Args:
+        db (Session): The database session.
+        user (Union[BuyerCreate, SellerCreate]): The user data.
+
+    Returns:
+        User: The created user instance.
+
+    Raises:
+        UserAlreadyExistsError: If username or email is already taken.
+    """
     try:
         if db.query(User).filter(User.username == user.username).first():
             raise UserAlreadyExistsError(user.username, "username")
         if db.query(User).filter(User.email == user.email).first():
             raise UserAlreadyExistsError(user.email, "email")
 
-        db_user = (
-            Buyer(**user.model_dump())
-            if user.user_type == UserType.buyer
-            else Seller(**user.model_dump())
-        )
-        if user.user_type == UserType.seller:
-            db_user.subscription_level = SubscriptionLevel.basic
+        if isinstance(user, SellerCreate):
+            db_user = Seller(**user.model_dump(), user_type=user.user_type, subscription_level=user.subscription_level)
+        else:
+            db_user = Buyer(**user.model_dump(), user_type=user.user_type)
 
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
         return db_user
+
     except IntegrityError as e:
         logger.error(f"IntegrityError: {e}")
         db.rollback()
         raise
     except Exception as e:
-        logger.error(f"Error creating user: {e}")
+        logger.error(f"Unexpected error during user creation: {e}")
+        db.rollback()
         raise
-
 
 def get_user(db: Session, identifier: str, identifier_type: str) -> User:
     """Retrieve a user based on a dynamic identifier (ID, username, or email)."""
