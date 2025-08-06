@@ -1,5 +1,14 @@
 import enum
+from crafty.config import get_settings
 
+
+class Environment(enum.StrEnum):
+    production = "production"
+    development = "development"
+
+    @classmethod
+    def is_dev(cls):
+        return get_settings().app_env == cls.development
 
 class UserType(enum.StrEnum):
     buyer = "buyer"
